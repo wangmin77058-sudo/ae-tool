@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>AE 不良事件上报系统</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+:root{
+  --blue:#2563eb;--blue-d:#1d4ed8;--blue-l:#eff6ff;
+  --green:#16a34a;--red:#dc2626;--red-l:#fef2f2;
+  --orange:#ea580c;--yellow:#ca8a04;--purple:#7c3aed;
+  --gray-50:#f9fafb;--gray-100:#f3f4f6;--gray-200:#e5e7eb;
+  --gray-400:#9ca3af;--gray-500:#6b7280;--gray-600:#4b5563;
+  --gray-700:#374151;--gray-800:#1f2937;
+  --radius:12px;--shadow:0 2px 8px rgba(0,0,0,.08);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;
+  background:var(--gray-100);color:var(--gray-800);min-height:100vh;padding-bottom:80px}
+/* ===== TOPBAR ===== */
+.topbar{position:sticky;top:0;z-index:200;background:linear-gradient(135deg,#1e40af,#3b82f6);
+  color:#fff;padding:12px 16px;display:flex;align-items:center;
+  justify-content:space-between;box-shadow:0 2px 12px rgba(30,64,175,.3)}
+.topbar-left h1{font-size:16px;font-weight:700}
+.topbar-left p{font-size:11px;opacity:.8;margin-top:1px}
+.topbar-btns{display:flex;gap:6px}
+.btn-tb{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+  color:#fff;border-radius:8px;padding:6px 11px;font-size:12px;cursor:pointer;white-space:nowrap;font-weight:600}
+.btn-tb:hover{background:rgba(255,255,255,.3)}
+.btn-tb.green{background:rgba(34,197,94,.3);border-color:rgba(34,197,94,.6)}
+/* ===== TABS ===== */
+.tabs{display:flex;background:#fff;border-bottom:2px solid var(--gray-200);position:sticky;top:62px;z-index:100}
+.tab{flex:1;padding:12px 0;text-align:center;font-size:13px;font-weight:600;
+  color:var(--gray-500);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}
+.tab.active{color:var(--blue);border-color:var(--blue)}
+/* ===== PAGE ===== */
+.page{display:none;padding:14px;max-width:540px;margin:0 auto}
+.page.active{display:block}
+/* ===== SECTION CARD ===== */
+.section-card{background:#fff;border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.section-title{font-size:14px;font-weight:700;color:var(--blue);margin-bottom:12px;
+  display:flex;align-items:center;gap:6px}
+.section-title .num{background:var(--blue);color:#fff;border-radius:50%;
+  width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:11px}
+/* ===== FORM ===== */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.form-row.full{grid-template-columns:1fr}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-label{font-size:12px;font-weight:600;color:var(--gray-600)}
+.form-label .req{color:var(--red);margin-left:2px}
+.form-input{padding:9px 12px;border:1.5px solid var(--gray-200);border-radius:9px;
+  font-size:14px;outline:none;background:#fff;width:100%;transition:border .2s}
+.form-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.form-input.error{border-color:var(--red);background:var(--red-l)}
+textarea.form-input{resize:vertical;min-height:72px}
+/* ===== GRADE SELECTOR ===== */
+.grade-row{display:flex;gap:6px}
+.grade-btn{flex:1;padding:8px 4px;border:1.5px solid var(--gray-200);border-radius:9px;
+  background:#fff;font-size:13px;font-weight:700;cursor:pointer;text-align:center;transition:all .15s}
+.grade-btn span{display:block;font-size:10px;font-weight:400;color:var(--gray-400)}
+.grade-btn[data-g="1"].sel{background:#dcfce7;border-color:#16a34a;color:#16a34a}
+.grade-btn[data-g="2"].sel{background:#fef9c3;border-color:#ca8a04;color:#ca8a04}
+.grade-btn[data-g="3"].sel{background:#ffedd5;border-color:#ea580c;color:#ea580c}
+.grade-btn[data-g="4"].sel{background:#fee2e2;border-color:#dc2626;color:#dc2626}
+.grade-btn[data-g="5"].sel{background:#ede9fe;border-color:#7c3aed;color:#7c3aed}
+/* ===== RELATION ===== */
+.rel-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.rel-btn{padding:8px 6px;border:1.5px solid var(--gray-200);border-radius:9px;
+  background:#fff;font-size:12px;font-weight:600;cursor:pointer;text-align:center;
+  color:var(--gray-600);transition:all .15s}
+.rel-btn.sel{background:var(--blue-l);border-color:var(--blue);color:var(--blue)}
+.degree-row{display:flex;gap:6px;margin-top:8px}
+.deg-btn{flex:1;padding:7px 4px;border:1.5px solid var(--gray-200);border-radius:9px;
+  background:#fff;font-size:11px;font-weight:600;cursor:pointer;text-align:center;
+  color:var(--gray-600);transition:all .15s}
+.deg-btn.sel{background:#fef3c7;border-color:#d97706;color:#92400e}
+/* ===== ACTIONS CHECKBOX ===== */
+.action-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.action-cb{padding:8px 6px;border:1.5px solid var(--gray-200);border-radius:9px;
+  background:#fff;font-size:12px;cursor:pointer;text-align:center;
+  color:var(--gray-600);transition:all .15s;user-select:none}
+.action-cb.sel{background:#dcfce7;border-color:#16a34a;color:#16a34a}
+/* ===== OUTCOME ===== */
+.outcome-row{display:flex;gap:6px;flex-wrap:wrap}
+.oc-btn{padding:7px 14px;border:1.5px solid var(--gray-200);border-radius:9px;
+  background:#fff;font-size:12px;font-weight:600;cursor:pointer;
+  color:var(--gray-600);transition:all .15s}
+.oc-btn.sel{background:var(--blue-l);border-color:var(--blue);color:var(--blue)}
+/* ===== SAE TOGGLE ===== */
+.sae-row{display:flex;gap:8px}
+.sae-btn{flex:1;padding:9px;border:1.5px solid var(--gray-200);border-radius:9px;
+  background:#fff;font-size:13px;font-weight:600;cursor:pointer;text-align:center;
+  color:var(--gray-500);transition:all .15s}
+.sae-btn.sel-no{background:var(--gray-50);border-color:var(--gray-400);color:var(--gray-600)}
+.sae-btn.sel-yes{background:#fee2e2;border-color:var(--red);color:var(--red)}
+/* ===== SUBMIT BTN ===== */
+.submit-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--blue),#60a5fa);
+  color:#fff;border:none;border-radius:var(--radius);font-size:16px;font-weight:700;
+  cursor:pointer;box-shadow:0 4px 12px rgba(37,99,235,.3);margin-top:4px;transition:transform .15s}
+.submit-btn:active{transform:scale(.97)}
+/* ===== RECORD LIST ===== */
+.record-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.record-count{font-size:13px;color:var(--gray-500)}
+.record-card{background:#fff;border-radius:var(--radius);margin-bottom:10px;
+  box-shadow:var(--shadow);overflow:hidden}
+.rc-top{display:flex;align-items:center;padding:11px 14px;cursor:pointer;
+  background:#fff;border-bottom:1px solid transparent;transition:background .15s}
+.rc-top:hover{background:var(--gray-50)}
+.rc-grade{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;
+  justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;margin-right:10px}
+.g1{background:#dcfce7;color:#16a34a}.g2{background:#fef9c3;color:#ca8a04}
+.g3{background:#ffedd5;color:#ea580c}.g4{background:#fee2e2;color:#dc2626}
+.g5{background:#ede9fe;color:#7c3aed}
+.rc-info{flex:1;min-width:0}
+.rc-name{font-size:14px;font-weight:700;color:var(--gray-800);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rc-sub{font-size:11px;color:var(--gray-400);margin-top:2px}
+.rc-sae{background:#fee2e2;color:var(--red);font-size:10px;font-weight:700;
+  padding:2px 6px;border-radius:5px;margin-left:6px;flex-shrink:0}
+.rc-arrow{color:var(--gray-400);font-size:14px;margin-left:8px;transition:transform .2s}
+.record-card.open .rc-arrow{transform:rotate(180deg)}
+.record-card.open .rc-top{background:var(--blue-l);border-bottom-color:var(--gray-200)}
+.rc-body{display:none;padding:12px 14px;background:#fff}
+.record-card.open .rc-body{display:block}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin-bottom:10px}
+.detail-item .d-label{font-size:11px;color:var(--gray-400)}
+.detail-item .d-value{font-size:13px;color:var(--gray-800);font-weight:500;margin-top:1px}
+.detail-item.full{grid-column:1/-1}
+.rc-actions{display:flex;gap:8px;margin-top:8px}
+.btn-edit{flex:1;padding:8px;border:1.5px solid var(--blue);border-radius:9px;
+  background:var(--blue-l);color:var(--blue);font-size:13px;font-weight:600;cursor:pointer}
+.btn-del{padding:8px 16px;border:1.5px solid var(--gray-200);border-radius:9px;
+  background:var(--gray-50);color:var(--red);font-size:13px;cursor:pointer}
+/* ===== EMPTY STATE ===== */
+.empty-state{text-align:center;padding:50px 20px;color:var(--gray-400)}
+.empty-state .icon{font-size:48px;margin-bottom:10px}
+/* ===== EDIT MODAL ===== */
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;
+  display:none;align-items:flex-end;justify-content:center}
+.modal-mask.open{display:flex}
+.modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:540px;
+  max-height:92vh;overflow-y:auto;padding:20px 16px 30px}
+.modal-handle{width:40px;height:4px;background:var(--gray-200);border-radius:2px;
+  margin:0 auto 16px}
+.modal-title{font-size:16px;font-weight:700;color:var(--blue);margin-bottom:16px}
+/* ===== CONFIRM ===== */
+.confirm-mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:400;
+  display:none;align-items:center;justify-content:center;padding:20px}
+.confirm-mask.open{display:flex}
+.confirm-box{background:#fff;border-radius:16px;padding:24px;max-width:300px;width:100%;text-align:center}
+.confirm-box p{font-size:15px;color:var(--gray-800);margin-bottom:18px}
+.confirm-btns{display:flex;gap:10px}
+.confirm-btns button{flex:1;padding:10px;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer}
+.btn-cancel{background:var(--gray-100);color:var(--gray-600)}
+.btn-confirm-del{background:var(--red);color:#fff}
+/* ===== TOAST ===== */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--gray-800);color:#fff;padding:10px 20px;border-radius:10px;
+  font-size:13px;opacity:0;transition:all .3s;z-index:999;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* ===== STATS ===== */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.stat-card{background:#fff;border-radius:10px;padding:10px;text-align:center;box-shadow:var(--shadow)}
+.stat-num{font-size:22px;font-weight:800;color:var(--blue)}
+.stat-label{font-size:10px;color:var(--gray-400);margin-top:2px}
+.stat-card.red .stat-num{color:var(--red)}
+.stat-card.orange .stat-num{color:var(--orange)}
+.stat-card.green .stat-num{color:var(--green)}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <h1>📋 AE 不良事件上报</h1>
+    <p>临床研究 · CTCAE v5.0</p>
+  </div>
+  <div class="topbar-btns">
+    <button class="btn-tb green" onclick="exportExcel()">📊 导出Excel</button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('report')">📝 填报AE</div>
+  <div class="tab" onclick="switchTab('records')">📋 记录列表</div>
+</div>
+
+<!-- ===== PAGE: REPORT ===== -->
+<div class="page active" id="page-report">
+
+  <!-- STEP 1: 患者信息 -->
+  <div class="section-card">
+    <div class="section-title"><span class="num">1</span>患者信息</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">患者姓名<span class="req">*</span></label>
+        <input class="form-input" id="f_name" placeholder="姓名">
+      </div>
+      <div class="form-group">
+        <label class="form-label">筛选号</label>
+        <input class="form-input" id="f_pid" placeholder="如 001">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">治疗周期</label>
+        <input class="form-input" id="f_cycle" placeholder="如 第2周期">
+      </div>
+      <div class="form-group">
+        <label class="form-label">评估日期</label>
+        <input class="form-input" type="date" id="f_date">
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: AE 信息 -->
+  <div class="section-card">
+    <div class="section-title"><span class="num">2</span>AE 详情</div>
+
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="form-label">AE 名称<span class="req">*</span></label>
+      <input class="form-input" id="f_aename" placeholder="参照 CTCAE v5.0 术语">
+    </div>
+
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="form-label">CTCAE 分级<span class="req">*</span></label>
+      <div class="grade-row">
+        <button class="grade-btn" data-g="1" onclick="selGrade(1)">G1<span>轻度</span></button>
+        <button class="grade-btn" data-g="2" onclick="selGrade(2)">G2<span>中度</span></button>
+        <button class="grade-btn" data-g="3" onclick="selGrade(3)">G3<span>重度</span></button>
+        <button class="grade-btn" data-g="4" onclick="selGrade(4)">G4<span>危重</span></button>
+        <button class="grade-btn" data-g="5" onclick="selGrade(5)">G5<span>死亡</span></button>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">开始日期<span class="req">*</span></label>
+        <input class="form-input" type="date" id="f_start">
+      </div>
+      <div class="form-group">
+        <label class="form-label">结束日期</label>
+        <input class="form-input" type="date" id="f_end">
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="form-label">治疗相关性<span class="req">*</span></label>
+      <div class="rel-grid">
+        <button class="rel-btn" data-r="unrelated" onclick="selRel('unrelated')">与治疗无关</button>
+        <button class="rel-btn" data-r="chemo" onclick="selRel('chemo')">化疗相关</button>
+        <button class="rel-btn" data-r="immuno" onclick="selRel('immuno')">免疫治疗相关</button>
+        <button class="rel-btn" data-r="radio" onclick="selRel('radio')">放疗相关</button>
+      </div>
+      <div class="degree-row" id="degreeRow" style="display:none">
+        <button class="deg-btn" data-d="definite" onclick="selDeg('definite')">肯定有关</button>
+        <button class="deg-btn" data-d="probable" onclick="selDeg('probable')">很可能有关</button>
+        <button class="deg-btn" data-d="possible" onclick="selDeg('possible')">可能有关</button>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="form-label">处理措施</label>
+      <div class="action-grid">
+        <div class="action-cb" data-a="停药" onclick="togAction('停药')">停药</div>
+        <div class="action-cb" data-a="剂量调整" onclick="togAction('剂量调整')">剂量调整</div>
+        <div class="action-cb" data-a="对症治疗" onclick="togAction('对症治疗')">对症治疗</div>
+        <div class="action-cb" data-a="延期治疗" onclick="togAction('延期治疗')">延期治疗</div>
+        <div class="action-cb" data-a="密切观察" onclick="togAction('密切观察')">密切观察</div>
+        <div class="action-cb" data-a="其他" onclick="togAction('其他')">其他</div>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="form-label">结局</label>
+      <div class="outcome-row">
+        <button class="oc-btn" data-o="痊愈" onclick="selOc('痊愈')">痊愈</button>
+        <button class="oc-btn" data-o="好转" onclick="selOc('好转')">好转</button>
+        <button class="oc-btn" data-o="持续中" onclick="selOc('持续中')">持续中</button>
+        <button class="oc-btn" data-o="死亡" onclick="selOc('死亡')">死亡</button>
+        <button class="oc-btn" data-o="不详" onclick="selOc('不详')">不详</button>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="form-label">SAE（严重不良事件）</label>
+      <div class="sae-row">
+        <button class="sae-btn" id="saeNo" onclick="selSAE(false)">否</button>
+        <button class="sae-btn" id="saeYes" onclick="selSAE(true)">⚠️ 是 SAE</button>
+      </div>
+    </div>
+
+    <div class="form-row full">
+      <div class="form-group">
+        <label class="form-label">备注</label>
+        <textarea class="form-input" id="f_note" placeholder="详细处理经过、检查结果等（可不填）"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: 记录人 -->
+  <div class="section-card">
+    <div class="section-title"><span class="num">3</span>上报信息</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">上报人<span class="req">*</span></label>
+        <input class="form-input" id="f_recorder" placeholder="记录人姓名">
+      </div>
+      <div class="form-group">
+        <label class="form-label">上报时间</label>
+        <input class="form-input" id="f_rectime" readonly placeholder="自动填写">
+      </div>
+    </div>
+  </div>
+
+  <button class="submit-btn" onclick="submitAE()">✅ 提交 AE 上报</button>
+</div>
+
+<!-- ===== PAGE: RECORDS ===== -->
+<div class="page" id="page-records">
+  <div class="stats-row" id="statsRow"></div>
+  <div class="record-header">
+    <span class="record-count" id="recCount">最近 0 条记录</span>
+  </div>
+  <div id="recordList"></div>
+</div>
+
+<!-- ===== EDIT MODAL ===== -->
+<div class="modal-mask" id="editMask" onclick="handleMaskClick(event)">
+  <div class="modal" id="editModal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">✏️ 编辑 AE 记录</div>
+
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="form-label">患者姓名<span class="req">*</span></label>
+      <input class="form-input" id="e_name" placeholder="姓名">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">筛选号</label>
+        <input class="form-input" id="e_pid" placeholder="">
+      </div>
+      <div class="form-group">
+        <label class="form-label">治疗周期</label>
+        <input class="form-input" id="e_cycle" placeholder="">
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="form-label">AE 名称<span class="req">*</span></label>
+      <input class="form-input" id="e_aename" placeholder="">
+    </div>
+
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="form-label">CTCAE 分级<span class="req">*</span></label>
+      <div class="grade-row">
+        <button class="grade-btn" data-eg="1" onclick="selEGrade(1)">G1<span>轻度</span></button>
+        <button class="grade-btn" data-eg="2" onclick="selEGrade(2)">G2<span>中度</span></button>
+        <button class="grade-btn" data-eg="3" onclick="selEGrade(3)">G3<span>重度</span></button>
+        <button class="grade-btn" data-eg="4" onclick="selEGrade(4)">G4<span>危重</span></button>
+        <button class="grade-btn" data-eg="5" onclick="selEGrade(5)">G5<span>死亡</span></button>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">开始日期</label>
+        <input class="form-input" type="date" id="e_start">
+      </div>
+      <div class="form-group">
+        <label class="form-label">结束日期</label>
+        <input class="form-input" type="date" id="e_end">
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="form-label">治疗相关性</label>
+      <div class="rel-grid">
+        <button class="rel-btn" data-er="unrelated" onclick="selERel('unrelated')">与治疗无关</button>
+        <button class="rel-btn" data-er="chemo" onclick="selERel('chemo')">化疗相关</button>
+        <button class="rel-btn" data-er="immuno" onclick="selERel('immuno')">免疫治疗相关</button>
+        <button class="rel-btn" data-er="radio" onclick="selERel('radio')">放疗相关</button>
+      </div>
+      <div class="degree-row" id="eDegreeRow" style="display:none">
+        <button class="deg-btn" data-ed="definite" onclick="selEDeg('definite')">肯定有关</button>
+        <button class="deg-btn" data-ed="probable" onclick="selEDeg('probable')">很可能有关</button>
+        <button class="deg-btn" data-ed="possible" onclick="selEDeg('possible')">可能有关</button>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="form-label">处理措施</label>
+      <div class="action-grid">
+        <div class="action-cb" data-ea="停药" onclick="togEAction('停药')">停药</div>
+        <div class="action-cb" data-ea="剂量调整" onclick="togEAction('剂量调整')">剂量调整</div>
+        <div class="action-cb" data-ea="对症治疗" onclick="togEAction('对症治疗')">对症治疗</div>
+        <div class="action-cb" data-ea="延期治疗" onclick="togEAction('延期治疗')">延期治疗</div>
+        <div class="action-cb" data-ea="密切观察" onclick="togEAction('密切观察')">密切观察</div>
+        <div class="action-cb" data-ea="其他" onclick="togEAction('其他')">其他</div>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="form-label">结局</label>
+      <div class="outcome-row">
+        <button class="oc-btn" data-eo="痊愈" onclick="selEOc('痊愈')">痊愈</button>
+        <button class="oc-btn" data-eo="好转" onclick="selEOc('好转')">好转</button>
+        <button class="oc-btn" data-eo="持续中" onclick="selEOc('持续中')">持续中</button>
+        <button class="oc-btn" data-eo="死亡" onclick="selEOc('死亡')">死亡</button>
+        <button class="oc-btn" data-eo="不详" onclick="selEOc('不详')">不详</button>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="form-label">SAE</label>
+      <div class="sae-row">
+        <button class="sae-btn" id="eSaeNo" onclick="selESAE(false)">否</button>
+        <button class="sae-btn" id="eSaeYes" onclick="selESAE(true)">⚠️ 是 SAE</button>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="form-label">上报人</label>
+      <input class="form-input" id="e_recorder" placeholder="">
+    </div>
+
+    <div class="form-group" style="margin-bottom:14px">
+      <label class="form-label">备注</label>
+      <textarea class="form-input" id="e_note" rows="3"></textarea>
+    </div>
+
+    <button class="submit-btn" onclick="saveEdit()">💾 保存修改</button>
+    <button style="width:100%;padding:12px;margin-top:8px;background:#fff;border:1.5px solid var(--gray-200);border-radius:var(--radius);font-size:14px;color:var(--gray-500);cursor:pointer" onclick="closeEditModal()">取消</button>
+  </div>
+</div>
+
+<!-- CONFIRM DELETE MODAL -->
+<div class="confirm-mask" id="confirmMask">
+  <div class="confirm-box">
+    <p>确认删除这条 AE 记录？<br><small style="color:var(--gray-400)">删除后无法恢复</small></p>
+    <div class="confirm-btns">
+      <button class="btn-cancel" onclick="closeConfirm()">取消</button>
+      <button class="btn-confirm-del" onclick="confirmDelete()">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== STORAGE =====
+const STORE_KEY = 'ae_records_v3';
+let records = [];
+let editingId = null;
+let deletingId = null;
+
+// Form states
+let selGradeVal = 0, selRelVal = '', selDegVal = '', selActions = new Set(), selOcVal = '', selSAEVal = false;
+let selEGradeVal = 0, selERelVal = '', selEDegVal = '', selEActions = new Set(), selEOcVal = '', selESAEVal = false;
+
+function loadRecords() {
+  try { records = JSON.parse(localStorage.getItem(STORE_KEY)) || []; } catch(e) { records = []; }
+}
+function saveRecords() { localStorage.setItem(STORE_KEY, JSON.stringify(records)); }
+function toast(msg) {
+  const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove('show'), 2400);
+}
+
+// ===== TABS =====
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['report','records'][i]===tab));
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+tab).classList.add('active');
+  if (tab==='records') renderRecords();
+}
+
+// ===== FORM: GRADE =====
+function selGrade(g) {
+  selGradeVal = g;
+  document.querySelectorAll('.grade-btn[data-g]').forEach(b=>b.classList.toggle('sel',+b.dataset.g===g));
+}
+function selEGrade(g) {
+  selEGradeVal = g;
+  document.querySelectorAll('.grade-btn[data-eg]').forEach(b=>b.classList.toggle('sel',+b.dataset.eg===g));
+}
+
+// ===== FORM: RELATION =====
+function selRel(r) {
+  selRelVal = r; selDegVal = '';
+  document.querySelectorAll('.rel-btn[data-r]').forEach(b=>b.classList.toggle('sel',b.dataset.r===r));
+  const dr = document.getElementById('degreeRow');
+  dr.style.display = (r==='unrelated')?'none':'flex';
+  document.querySelectorAll('.deg-btn[data-d]').forEach(b=>b.classList.remove('sel'));
+}
+function selDeg(d) {
+  selDegVal = d;
+  document.querySelectorAll('.deg-btn[data-d]').forEach(b=>b.classList.toggle('sel',b.dataset.d===d));
+}
+function selERel(r) {
+  selERelVal = r; selEDegVal = '';
+  document.querySelectorAll('.rel-btn[data-er]').forEach(b=>b.classList.toggle('sel',b.dataset.er===r));
+  const dr = document.getElementById('eDegreeRow');
+  dr.style.display = (r==='unrelated')?'none':'flex';
+  document.querySelectorAll('.deg-btn[data-ed]').forEach(b=>b.classList.remove('sel'));
+}
+function selEDeg(d) {
+  selEDegVal = d;
+  document.querySelectorAll('.deg-btn[data-ed]').forEach(b=>b.classList.toggle('sel',b.dataset.ed===d));
+}
+
+// ===== FORM: ACTIONS =====
+function togAction(a) {
+  if(selActions.has(a)) selActions.delete(a); else selActions.add(a);
+  document.querySelectorAll('.action-cb[data-a]').forEach(b=>b.classList.toggle('sel',selActions.has(b.dataset.a)));
+}
+function togEAction(a) {
+  if(selEActions.has(a)) selEActions.delete(a); else selEActions.add(a);
+  document.querySelectorAll('.action-cb[data-ea]').forEach(b=>b.classList.toggle('sel',selEActions.has(b.dataset.ea)));
+}
+
+// ===== FORM: OUTCOME =====
+function selOc(o) {
+  selOcVal = o;
+  document.querySelectorAll('.oc-btn[data-o]').forEach(b=>b.classList.toggle('sel',b.dataset.o===o));
+}
+function selEOc(o) {
+  selEOcVal = o;
+  document.querySelectorAll('.oc-btn[data-eo]').forEach(b=>b.classList.toggle('sel',b.dataset.eo===o));
+}
+
+// ===== FORM: SAE =====
+function selSAE(v) {
+  selSAEVal = v;
+  document.getElementById('saeNo').className = 'sae-btn'+(v?'':' sel-no');
+  document.getElementById('saeYes').className = 'sae-btn'+(v?' sel-yes':'');
+}
+function selESAE(v) {
+  selESAEVal = v;
+  document.getElementById('eSaeNo').className = 'sae-btn'+(v?'':' sel-no');
+  document.getElementById('eSaeYes').className = 'sae-btn'+(v?' sel-yes':'');
+}
+
+// ===== SUBMIT =====
+function submitAE() {
+  const name = document.getElementById('f_name').value.trim();
+  const aename = document.getElementById('f_aename').value.trim();
+  const recorder = document.getElementById('f_recorder').value.trim();
+  const start = document.getElementById('f_start').value;
+  if (!name) { markErr('f_name'); toast('⚠️ 请填写患者姓名'); return; }
+  if (!aename) { markErr('f_aename'); toast('⚠️ 请填写AE名称'); return; }
+  if (!selGradeVal) { toast('⚠️ 请选择CTCAE分级'); return; }
+  if (!start) { markErr('f_start'); toast('⚠️ 请填写开始日期'); return; }
+  if (!selRelVal) { toast('⚠️ 请选择治疗相关性'); return; }
+  if (selRelVal !== 'unrelated' && !selDegVal) { toast('⚠️ 请选择相关程度'); return; }
+  if (!recorder) { markErr('f_recorder'); toast('⚠️ 请填写上报人'); return; }
+
+  const rec = {
+    id: Date.now().toString()+Math.random().toString(36).slice(2,6),
+    patientName: name,
+    patientId: document.getElementById('f_pid').value.trim(),
+    cycle: document.getElementById('f_cycle').value.trim(),
+    assessDate: document.getElementById('f_date').value,
+    aeName: aename,
+    grade: selGradeVal,
+    startDate: start,
+    endDate: document.getElementById('f_end').value,
+    relationType: selRelVal,
+    relationDegree: selRelVal==='unrelated' ? '' : selDegVal,
+    actions: Array.from(selActions),
+    outcome: selOcVal,
+    isSAE: selSAEVal,
+    recorder: recorder,
+    reportTime: new Date().toLocaleString('zh-CN'),
+    note: document.getElementById('f_note').value.trim()
+  };
+  records.unshift(rec);
+  saveRecords();
+  resetForm();
+  toast('✅ AE已上报成功');
+  switchTab('records');
+}
+
+function markErr(id) {
+  const el = document.getElementById(id); el.classList.add('error');
+  el.addEventListener('input',()=>el.classList.remove('error'),{once:true});
+}
+
+function resetForm() {
+  ['f_name','f_pid','f_cycle','f_aename','f_note','f_recorder'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f_date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('f_start').value = new Date().toISOString().split('T')[0];
+  document.getElementById('f_end').value = '';
+  selGradeVal=0; selRelVal=''; selDegVal=''; selActions=new Set(); selOcVal=''; selSAEVal=false;
+  document.querySelectorAll('.grade-btn[data-g],.rel-btn[data-r],.deg-btn[data-d],.action-cb[data-a],.oc-btn[data-o]').forEach(b=>b.classList.remove('sel'));
+  document.getElementById('degreeRow').style.display='none';
+  selSAE(false);
+}
+
+// ===== RENDER RECORDS =====
+const REL_LABEL = {unrelated:'无关',chemo:'化疗相关',immuno:'免疫治疗相关',radio:'放疗相关'};
+const DEG_LABEL = {definite:'肯定有关',probable:'很可能有关',possible:'可能有关'};
+const GRADE_LABEL = ['','G1轻度','G2中度','G3重度','G4危重','G5死亡'];
+const GRADE_CLS = ['','g1','g2','g3','g4','g5'];
+
+function renderRecords() {
+  const total = records.length;
+  const g3n = records.filter(r=>r.grade>=3).length;
+  const saen = records.filter(r=>r.isSAE).length;
+  const ong = records.filter(r=>!r.endDate||r.outcome==='持续中').length;
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-card"><div class="stat-num">${total}</div><div class="stat-label">总AE数</div></div>
+    <div class="stat-card orange"><div class="stat-num">${g3n}</div><div class="stat-label">≥G3级</div></div>
+    <div class="stat-card red"><div class="stat-num">${saen}</div><div class="stat-label">SAE</div></div>
+    <div class="stat-card green"><div class="stat-num">${ong}</div><div class="stat-label">持续中</div></div>`;
+
+  const show = records.slice(0,10);
+  document.getElementById('recCount').textContent = `最近 ${show.length} 条（共 ${total} 条）`;
+
+  if (!show.length) {
+    document.getElementById('recordList').innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>暂无记录<br>切换到「填报AE」标签开始上报</p></div>';
+    return;
+  }
+
+  document.getElementById('recordList').innerHTML = show.map((r,i) => {
+    const relText = r.relationType==='unrelated' ? '无关' : (REL_LABEL[r.relationType]||'')+(r.relationDegree?'（'+DEG_LABEL[r.relationDegree]+'）':'');
+    return `<div class="record-card" id="rc_${r.id}">
+      <div class="rc-top" onclick="toggleCard('${r.id}')">
+        <div class="rc-grade ${GRADE_CLS[r.grade]||'g1'}">G${r.grade||'?'}</div>
+        <div class="rc-info">
+          <div class="rc-name">${r.aeName} ${r.isSAE?'<span class="rc-sae">SAE</span>':''}</div>
+          <div class="rc-sub">${r.patientName||'—'}${r.patientId?' · '+r.patientId:''} · ${r.recorder||'—'} · ${r.reportTime||''}</div>
+        </div>
+        <span class="rc-arrow">▼</span>
+      </div>
+      <div class="rc-body">
+        <div class="detail-grid">
+          <div class="detail-item"><div class="d-label">患者</div><div class="d-value">${r.patientName||'—'}</div></div>
+          <div class="detail-item"><div class="d-label">筛选号</div><div class="d-value">${r.patientId||'—'}</div></div>
+          <div class="detail-item"><div class="d-label">治疗周期</div><div class="d-value">${r.cycle||'—'}</div></div>
+          <div class="detail-item"><div class="d-label">评估日期</div><div class="d-value">${r.assessDate||'—'}</div></div>
+          <div class="detail-item"><div class="d-label">开始日期</div><div class="d-value">${r.startDate||'—'}</div></div>
+          <div class="detail-item"><div class="d-label">结束日期</div><div class="d-value">${r.endDate||'持续中'}</div></div>
+          <div class="detail-item"><div class="d-label">治疗相关性</div><div class="d-value">${relText}</div></div>
+          <div class="detail-item"><div class="d-label">结局</div><div class="d-value">${r.outcome||'—'}</div></div>
+          <div class="detail-item full"><div class="d-label">处理措施</div><div class="d-value">${r.actions&&r.actions.length?r.actions.join('、'):'—'}</div></div>
+          ${r.note?`<div class="detail-item full"><div class="d-label">备注</div><div class="d-value">${r.note}</div></div>`:''}
+          <div class="detail-item"><div class="d-label">上报人</div><div class="d-value">${r.recorder||'—'}</div></div>
+          <div class="detail-item"><div class="d-label">上报时间</div><div class="d-value">${r.reportTime||'—'}</div></div>
+        </div>
+        <div class="rc-actions">
+          <button class="btn-edit" onclick="openEdit('${r.id}')">✏️ 编辑</button>
+          <button class="btn-del" onclick="askDelete('${r.id}')">🗑️</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCard(id) {
+  const card = document.getElementById('rc_'+id);
+  card.classList.toggle('open');
+}
+
+// ===== EDIT =====
+function openEdit(id) {
+  const r = records.find(x=>x.id===id); if(!r) return;
+  editingId = id;
+  document.getElementById('e_name').value = r.patientName||'';
+  document.getElementById('e_pid').value = r.patientId||'';
+  document.getElementById('e_cycle').value = r.cycle||'';
+  document.getElementById('e_aename').value = r.aeName||'';
+  document.getElementById('e_start').value = r.startDate||'';
+  document.getElementById('e_end').value = r.endDate||'';
+  document.getElementById('e_recorder').value = r.recorder||'';
+  document.getElementById('e_note').value = r.note||'';
+  selEGradeVal=r.grade||0;
+  document.querySelectorAll('.grade-btn[data-eg]').forEach(b=>b.classList.toggle('sel',+b.dataset.eg===selEGradeVal));
+  selERelVal=r.relationType||'';
+  document.querySelectorAll('.rel-btn[data-er]').forEach(b=>b.classList.toggle('sel',b.dataset.er===selERelVal));
+  document.getElementById('eDegreeRow').style.display=(selERelVal&&selERelVal!=='unrelated')?'flex':'none';
+  selEDegVal=r.relationDegree||'';
+  document.querySelectorAll('.deg-btn[data-ed]').forEach(b=>b.classList.toggle('sel',b.dataset.ed===selEDegVal));
+  selEActions=new Set(r.actions||[]);
+  document.querySelectorAll('.action-cb[data-ea]').forEach(b=>b.classList.toggle('sel',selEActions.has(b.dataset.ea)));
+  selEOcVal=r.outcome||'';
+  document.querySelectorAll('.oc-btn[data-eo]').forEach(b=>b.classList.toggle('sel',b.dataset.eo===selEOcVal));
+  selESAEVal=r.isSAE||false;
+  selESAE(selESAEVal);
+  document.getElementById('editMask').classList.add('open');
+  document.getElementById('editModal').scrollTop=0;
+}
+
+function saveEdit() {
+  if (!editingId) return;
+  const idx = records.findIndex(x=>x.id===editingId); if(idx<0) return;
+  const name = document.getElementById('e_name').value.trim();
+  const aename = document.getElementById('e_aename').value.trim();
+  if (!name) { toast('⚠️ 请填写患者姓名'); return; }
+  if (!aename) { toast('⚠️ 请填写AE名称'); return; }
+  if (!selEGradeVal) { toast('⚠️ 请选择分级'); return; }
+  Object.assign(records[idx], {
+    patientName: name,
+    patientId: document.getElementById('e_pid').value.trim(),
+    cycle: document.getElementById('e_cycle').value.trim(),
+    aeName: aename,
+    grade: selEGradeVal,
+    startDate: document.getElementById('e_start').value,
+    endDate: document.getElementById('e_end').value,
+    relationType: selERelVal,
+    relationDegree: selERelVal==='unrelated'?'':selEDegVal,
+    actions: Array.from(selEActions),
+    outcome: selEOcVal,
+    isSAE: selESAEVal,
+    recorder: document.getElementById('e_recorder').value.trim(),
+    note: document.getElementById('e_note').value.trim()
+  });
+  saveRecords(); closeEditModal(); renderRecords(); toast('✅ 已保存修改');
+}
+
+function closeEditModal() {
+  document.getElementById('editMask').classList.remove('open');
+  editingId = null;
+}
+function handleMaskClick(e) {
+  if (e.target === document.getElementById('editMask')) closeEditModal();
+}
+
+// ===== DELETE =====
+function askDelete(id) { deletingId=id; document.getElementById('confirmMask').classList.add('open'); }
+function closeConfirm() { document.getElementById('confirmMask').classList.remove('open'); deletingId=null; }
+function confirmDelete() {
+  if (!deletingId) return;
+  records = records.filter(x=>x.id!==deletingId);
+  saveRecords(); closeConfirm(); renderRecords(); toast('🗑️ 已删除');
+}
+
+// ===== EXPORT EXCEL =====
+function exportExcel() {
+  if (typeof XLSX === 'undefined') { toast('⚠️ Excel库加载中，请稍后'); return; }
+  if (!records.length) { toast('⚠️ 暂无记录'); return; }
+  const headers = ['上报时间','患者姓名','筛选号','治疗周期','评估日期','AE名称','CTCAE分级',
+    '开始日期','结束日期','治疗相关性','相关程度','处理措施','结局','SAE','上报人','备注'];
+  const rows = records.map(r=>[
+    r.reportTime||'', r.patientName||'', r.patientId||'', r.cycle||'', r.assessDate||'',
+    r.aeName||'', r.grade?('G'+r.grade+'('+GRADE_LABEL[r.grade].slice(2)+')'):'',
+    r.startDate||'', r.endDate||'持续中',
+    REL_LABEL[r.relationType]||'', DEG_LABEL[r.relationDegree]||'',
+    r.actions&&r.actions.length?r.actions.join('；'):'',
+    r.outcome||'', r.isSAE?'是':'否',
+    r.recorder||'', r.note||''
+  ]);
+  const ws = XLSX.utils.aoa_to_sheet([headers,...rows]);
+  ws['!cols']=[{wch:18},{wch:12},{wch:10},{wch:12},{wch:12},{wch:20},{wch:10},
+    {wch:12},{wch:12},{wch:14},{wch:12},{wch:24},{wch:8},{wch:6},{wch:12},{wch:24}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'AE上报记录');
+  XLSX.writeFile(wb, 'AE上报记录_'+new Date().toLocaleDateString('zh-CN').replace(/\//g,'-')+'.xlsx');
+  toast('📊 Excel已导出');
+}
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', ()=>{
+  loadRecords();
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('f_date').value = today;
+  document.getElementById('f_start').value = today;
+  document.getElementById('f_rectime').value = new Date().toLocaleString('zh-CN');
+  selSAE(false);
+  // remember last recorder
+  const lastRecorder = localStorage.getItem('ae_last_recorder');
+  if (lastRecorder) document.getElementById('f_recorder').value = lastRecorder;
+  document.getElementById('f_recorder').addEventListener('change', e=>{
+    localStorage.setItem('ae_last_recorder', e.target.value);
+  });
+});
+</script>
+</body>
+</html>
