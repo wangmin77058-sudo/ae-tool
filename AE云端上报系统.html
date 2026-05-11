@@ -255,7 +255,10 @@ textarea{resize:vertical;min-height:60px}
 
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/cloudbase@latest/dist/cloudbase.min.js"></script>
+<script>
+window.CLOUDBASE_LOADED = false;
+</script>
+<script src="https://imgcache.qq.com/qcloud/cloudbase-js-sdk/1.1.1/cloudbase.full.js" onload="window.CLOUDBASE_LOADED=true" onerror="document.getElementById('statusText').innerHTML='SDK加载失败，请检查网络'"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 const ENV_ID = "cloud003";
