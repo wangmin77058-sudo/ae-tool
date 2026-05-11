@@ -70,6 +70,8 @@ textarea{resize:vertical;min-height:60px}
 .rel-options label{font-size:12px;display:flex;align-items:center;gap:3px;cursor:pointer;background:#f9fafb;padding:4px 10px;border-radius:8px;border:1px solid #e5e7eb;transition:all 0.15s}
 .rel-options input[type="radio"]{accent-color:#3b82f6}
 .rel-options label:has(input:checked){background:#eff6ff;border-color:#3b82f6;color:#1d4ed8}
+.rel-degree-wrap{transition:all 0.2s}
+.rel-degree-wrap.hidden{display:none}
 .outcome-grp{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
 .outcome-grp label{font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer;padding:4px 10px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb}
 .outcome-grp input[type="radio"]{accent-color:#3b82f6}
@@ -109,25 +111,13 @@ textarea{resize:vertical;min-height:60px}
     </div>
     <div class="form-row">
       <div class="form-group">
-        <div class="label">病案号</div>
-        <input id="pCaseNo" type="text" placeholder="住院病案号">
+        <div class="label">治疗周期</div>
+        <input id="pCycle" type="text" placeholder="如：C3D1、放疗第2周">
       </div>
       <div class="form-group">
-        <div class="label">治疗周期</div>
-        <select id="pCycle">
-          <option value="">请选择</option>
-          <option>C1D1</option><option>C1D8</option><option>C1D15</option>
-          <option>C2D1</option><option>C2D8</option><option>C2D15</option>
-          <option>C3D1</option><option>C3D8</option><option>C3D15</option>
-          <option>C4D1</option><option>C4D8</option><option>C4D15</option>
-          <option>C5D1</option><option>C6D1</option>
-          <option>维持期</option><option>放疗期</option><option>随访期</option>
-        </select>
+        <div class="label">评估日期 <span class="req">*</span></div>
+        <input id="aeAssessDate" type="date">
       </div>
-    </div>
-    <div class="form-group">
-      <div class="label">评估日期 <span class="req">*</span></div>
-      <input id="aeAssessDate" type="date">
     </div>
   </div>
 
@@ -135,7 +125,7 @@ textarea{resize:vertical;min-height:60px}
     <div class="section-title">🔬 AE 详情</div>
     <div class="form-group">
       <div class="label">AE 名称 <span class="req">*</span></div>
-      <input id="aeName" type="text" placeholder="如：放射性肺炎、中性粒细胞减少……">
+      <input id="aeName" type="text" placeholder="如：放射性肺炎、中性粒细胞减少">
     </div>
     <div class="form-row">
       <div class="form-group">
@@ -171,21 +161,21 @@ textarea{resize:vertical;min-height:60px}
       </div>
     </div>
 
-    <!-- 治疗相关性：原因 + 程度 -->
+    <!-- 治疗相关性：原因 + 程度（程度仅在非"与治疗无关"时显示） -->
     <div class="form-group">
       <div class="label">与治疗相关性</div>
       <div class="rel-group">
         <div class="rel-label">原因判断</div>
-        <div class="rel-options" id="relCause">
-          <label><input type="radio" name="relCause" value="与治疗无关"> 与治疗无关</label>
-          <label><input type="radio" name="relCause" value="化疗相关"> 化疗相关</label>
-          <label><input type="radio" name="relCause" value="免疫治疗相关"> 免疫治疗相关</label>
-          <label><input type="radio" name="relCause" value="放疗相关"> 放疗相关</label>
-          <label><input type="radio" name="relCause" value="靶向治疗相关"> 靶向治疗相关</label>
+        <div class="rel-options" id="relCauseWrap">
+          <label><input type="radio" name="relCause" value="与治疗无关" onclick="onRelCauseChange(this)"> 与治疗无关</label>
+          <label><input type="radio" name="relCause" value="化疗相关" onclick="onRelCauseChange(this)"> 化疗相关</label>
+          <label><input type="radio" name="relCause" value="免疫治疗相关" onclick="onRelCauseChange(this)"> 免疫治疗相关</label>
+          <label><input type="radio" name="relCause" value="放疗相关" onclick="onRelCauseChange(this)"> 放疗相关</label>
+          <label><input type="radio" name="relCause" value="靶向治疗相关" onclick="onRelCauseChange(this)"> 靶向治疗相关</label>
         </div>
       </div>
-      <div class="rel-group" style="margin-top:8px">
-        <div class="rel-label">程度判断</div>
+      <div class="rel-degree-wrap hidden" id="relDegreeWrap">
+        <div class="rel-label">程度判断（仅需对治疗相关事件填写）</div>
         <div class="rel-options" id="relDegree">
           <label><input type="radio" name="relDegree" value="肯定有关"> 肯定有关</label>
           <label><input type="radio" name="relDegree" value="很可能有关"> 很可能有关</label>
@@ -197,15 +187,8 @@ textarea{resize:vertical;min-height:60px}
     </div>
 
     <div class="form-group">
-      <div class="label">处理措施（可多选）</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
-        <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer;background:#f9fafb;padding:5px 10px;border-radius:8px;border:1px solid #e5e7eb"><input type="checkbox" value="停药"> 停药</label>
-        <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer;background:#f9fafb;padding:5px 10px;border-radius:8px;border:1px solid #e5e7eb"><input type="checkbox" value="剂量调整"> 剂量调整</label>
-        <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer;background:#f9fafb;padding:5px 10px;border-radius:8px;border:1px solid #e5e7eb"><input type="checkbox" value="对症治疗"> 对症治疗</label>
-        <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer;background:#f9fafb;padding:5px 10px;border-radius:8px;border:1px solid #e5e7eb"><input type="checkbox" value="延期治疗"> 延期治疗</label>
-        <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer;background:#f9fafb;padding:5px 10px;border-radius:8px;border:1px solid #e5e7eb"><input type="checkbox" value="密切观察"> 密切观察</label>
-        <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer;background:#f9fafb;padding:5px 10px;border-radius:8px;border:1px solid #e5e7eb"><input type="checkbox" value="其他"> 其他</label>
-      </div>
+      <div class="label">处理措施（请填写具体用药或处理方式）</div>
+      <textarea id="aeHandle" placeholder="如：美林退热、地塞米松5mgiv、止吐药、停用顺铂……"></textarea>
     </div>
 
     <div class="form-group">
@@ -260,7 +243,7 @@ textarea{resize:vertical;min-height:60px}
 
 <!-- 编辑弹窗 -->
 <div class="modal-overlay" id="editModal">
-  <div class="modal-panel" id="editPanel">
+  <div class="modal-panel">
     <div class="modal-title">
       ✏️ 编辑记录
       <button class="close-btn" onclick="closeEdit()">✕</button>
@@ -310,22 +293,22 @@ function toggleSaeWarn() {
   document.getElementById("saeWarn").classList.toggle("show", v === "是");
 }
 
-// ── 获取多选值 ──
-function getCheckboxes() {
-  return [...document.querySelectorAll('#tabForm input[type="checkbox"]:checked')].map(c => c.value).join("、");
+// ── 原因改变 → 控制程度是否显示 ──
+function onRelCauseChange(el) {
+  const degreeWrap = document.getElementById("relDegreeWrap");
+  if (el.value === "与治疗无关") {
+    degreeWrap.classList.add("hidden");
+    // 清除程度选择
+    document.querySelectorAll('input[name="relDegree"]').forEach(r => r.checked = false);
+  } else {
+    degreeWrap.classList.remove("hidden");
+  }
 }
 
 // ── 获取单选值 ──
 function getRadio(name) {
-  const el = document.querySelector(`input[name="${name}"]:checked`);
+  const el = document.querySelector('input[name="' + name + '"]:checked');
   return el ? el.value : "";
-}
-
-// ── 设置单选 ──
-function setRadio(name, value) {
-  if (!value) return;
-  const el = document.querySelector(`input[name="${name}"][value="${CSS.escape(value)}"]`);
-  if (el) el.checked = true;
 }
 
 // ── 提交 ──
@@ -344,24 +327,26 @@ async function submitAE() {
 
   const relCause = getRadio("relCause");
   const relDegree = getRadio("relDegree");
-  const outcome = getRadio("outcome");
+  // 与治疗无关时只存原因，不存程度
+  const aeRelation = relCause === "与治疗无关"
+    ? "与治疗无关"
+    : (relCause + (relDegree ? " / " + relDegree : ""));
 
   const record = {
     pName,
     pScreenNo: document.getElementById("pScreenNo").value.trim(),
-    pCaseNo: document.getElementById("pCaseNo").value.trim(),
-    pCycle: document.getElementById("pCycle").value,
+    pCycle: document.getElementById("pCycle").value.trim(),
     aeAssessDate,
     aeName,
     aeGrade,
     aeSAE: document.getElementById("aeSAE").value,
     aeStart,
     aeEnd: document.getElementById("aeEnd").value,
-    relCause,
-    relDegree,
-    aeRelation: relCause && relDegree ? `${relCause} / ${relDegree}` : (relCause || relDegree || ""),
-    aeHandle: getCheckboxes(),
-    outcome: outcome || "持续中",
+    relCause: relCause,
+    relDegree: relDegree,
+    aeRelation: aeRelation,
+    aeHandle: document.getElementById("aeHandle").value.trim(),
+    outcome: getRadio("outcome") || "持续中",
     aeNote: document.getElementById("aeNote").value.trim(),
     reporter,
     createTime: new Date().toISOString(),
@@ -379,16 +364,14 @@ async function submitAE() {
 
 // ── 清空表单 ──
 function clearForm() {
-  ["pName","pScreenNo","pCaseNo","aeName","aeGrade","aeSAE","aeStart","aeEnd","aeNote","reporter"].forEach(id => {
+  ["pName","pScreenNo","pCycle","aeName","aeGrade","aeSAE","aeStart","aeEnd","aeNote","reporter","aeHandle"].forEach(id => {
     const el = document.getElementById(id);
-    if (!el) return;
-    if (el.type === "checkbox") el.checked = false; else el.value = (id === "aeSAE" ? "否" : "");
+    if (el) el.value = (id === "aeSAE" ? "否" : "");
   });
-  document.getElementById("pCycle").value = "";
   document.getElementById("aeAssessDate").value = "";
   document.getElementById("saeWarn").classList.remove("show");
+  document.getElementById("relDegreeWrap").classList.add("hidden");
   document.querySelectorAll('input[type="radio"]').forEach(r => r.checked = false);
-  document.querySelectorAll('#tabForm input[type="checkbox"]').forEach(c => c.checked = false);
 }
 
 // ── 加载记录 ──
@@ -432,17 +415,16 @@ function renderRecords(records) {
       </div>
       <div class="record-detail ${i===0?"show":""}" id="detail-${r._id}">
         ${r.pScreenNo?`<div class="detail-row"><span class="detail-label">筛选号</span><span class="detail-value">${esc(r.pScreenNo)}</span></div>`:""}
-        ${r.pCaseNo?`<div class="detail-row"><span class="detail-label">病案号</span><span class="detail-value">${esc(r.pCaseNo)}</span></div>`:""}
         ${r.pCycle?`<div class="detail-row"><span class="detail-label">治疗周期</span><span class="detail-value">${esc(r.pCycle)}</span></div>`:""}
         ${r.aeAssessDate?`<div class="detail-row"><span class="detail-label">评估日期</span><span class="detail-value">${r.aeAssessDate}</span></div>`:""}
         <div class="detail-row"><span class="detail-label">AE名称</span><span class="detail-value">${esc(r.aeName)}</span></div>
         <div class="detail-row"><span class="detail-label">分级 / SAE</span><span class="detail-value">${r.aeGrade || ""} ${r.aeSAE==="是"?"/ SAE ⚠️":""}</span></div>
-        ${r.relCause||r.relDegree?`<div class="detail-row"><span class="detail-label">治疗相关性</span><span class="detail-value">${esc(r.aeRelation||"")}</span></div>`:""}
-        ${r.aeHandle?`<div class="detail-row"><span class="detail-label">处理措施</span><span class="detail-value">${esc(r.aeHandle)}</span></div>`:""}
+        ${r.aeRelation?`<div class="detail-row"><span class="detail-label">治疗相关性</span><span class="detail-value">${esc(r.aeRelation||"")}</span></div>`:""}
+        ${r.aeHandle?`<div class="detail-row" style="flex-direction:column;align-items:flex-start;gap:2px"><span class="detail-label">处理措施</span><span class="detail-value" style="text-align:left;max-width:100%">${esc(r.aeHandle)}</span></div>`:""}
         <div class="detail-row"><span class="detail-label">开始/结束日期</span><span class="detail-value">${r.aeStart||"-"} / ${r.aeEnd||"进行中"}</span></div>
         <div class="detail-row"><span class="detail-label">结局</span><span class="detail-value">${outcome}</span></div>
-        <div class="detail-row"><span class="detail-label">上报人 / 时间</span><span class="detail-value">${esc(r.reporter||"")} ${r.reportTime? new Date(r.reportTime).toLocaleDateString("zh-CN"):""}</span></div>
-        ${r.aeNote?`<div class="detail-row"><span class="detail-label">备注</span><span class="detail-value">${esc(r.aeNote)}</span></div>`:""}
+        <div class="detail-row"><span class="detail-label">上报人 / 时间</span><span class="detail-value">${esc(r.reporter||"")} ${r.reportTime ? new Date(r.reportTime).toLocaleDateString("zh-CN") : ""}</span></div>
+        ${r.aeNote?`<div class="detail-row" style="flex-direction:column;align-items:flex-start;gap:2px"><span class="detail-label">备注</span><span class="detail-value" style="text-align:left;max-width:100%">${esc(r.aeNote)}</span></div>`:""}
         <div class="detail-actions">
           ${r._openid===userOpenId?`<button class="btn btn-secondary" onclick="editRecord('${r._id}')">✏️ 编辑</button><button class="btn btn-danger" onclick="deleteRecord('${r._id}')">🗑️ 删除</button>`:"<span style='font-size:12px;color:#9ca3af'>仅创建者可编辑</span>"}
         </div>
@@ -467,41 +449,31 @@ function editRecord(id) {
   const r = allRecords.find(x => x._id === id);
   if (!r) return;
   currentEditingId = id;
-  const esc = s => { const d=document.createElement("div"); d.textContent=s; return d.innerHTML; };
+  const esc = s => { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; };
+  const relCauseVal = r.relCause || "";
+  const relDegreeVal = r.relDegree || "";
+  const degreeHidden = relCauseVal === "与治疗无关" ? "hidden" : "";
 
   document.getElementById("editForm").innerHTML = `
-    <div class="form-group">
-      <div class="label">患者姓名</div>
-      <input id="edit-pName" type="text" value="${esc(r.pName||"")}">
-    </div>
     <div class="form-row">
+      <div class="form-group">
+        <div class="label">患者姓名</div>
+        <input id="edit-pName" type="text" value="${esc(r.pName||"")}">
+      </div>
       <div class="form-group">
         <div class="label">筛选号</div>
         <input id="edit-pScreenNo" type="text" value="${esc(r.pScreenNo||"")}">
       </div>
-      <div class="form-group">
-        <div class="label">病案号</div>
-        <input id="edit-pCaseNo" type="text" value="${esc(r.pCaseNo||"")}">
-      </div>
     </div>
-    <div class="form-group">
-      <div class="label">治疗周期</div>
-      <select id="edit-pCycle">
-        <option value="">请选择</option>
-        <option ${r.pCycle==="C1D1"?"selected":""}>C1D1</option>
-        <option ${r.pCycle==="C1D8"?"selected":""}>C1D8</option>
-        <option ${r.pCycle==="C1D15"?"selected":""}>C1D15</option>
-        <option ${r.pCycle==="C2D1"?"selected":""}>C2D1</option>
-        <option ${r.pCycle==="C2D8"?"selected":""}>C2D8</option>
-        <option ${r.pCycle==="C2D15"?"selected":""}>C2D15</option>
-        <option ${r.pCycle==="C3D1"?"selected":""}>C3D1</option>
-        <option ${r.pCycle==="C3D8"?"selected":""}>C3D8</option>
-        <option ${r.pCycle==="C3D15"?"selected":""}>C3D15</option>
-        <option ${r.pCycle==="C4D1"?"selected":""}>C4D1</option>
-        <option ${r.pCycle==="放疗期"?"selected":""}>放疗期</option>
-        <option ${r.pCycle==="维持期"?"selected":""}>维持期</option>
-        <option ${r.pCycle==="随访期"?"selected":""}>随访期</option>
-      </select>
+    <div class="form-row">
+      <div class="form-group">
+        <div class="label">治疗周期</div>
+        <input id="edit-pCycle" type="text" value="${esc(r.pCycle||"")}" placeholder="如：C3D1">
+      </div>
+      <div class="form-group">
+        <div class="label">评估日期</div>
+        <input id="edit-aeAssessDate" type="date" value="${r.aeAssessDate||""}">
+      </div>
     </div>
     <div class="form-group">
       <div class="label">AE 名称</div>
@@ -538,6 +510,10 @@ function editRecord(id) {
       </div>
     </div>
     <div class="form-group">
+      <div class="label">处理措施（具体用药）</div>
+      <textarea id="edit-aeHandle">${esc(r.aeHandle||"")}</textarea>
+    </div>
+    <div class="form-group">
       <div class="label">结局</div>
       <div class="outcome-grp">
         <label><input type="radio" name="edit-outcome" value="痊愈" ${r.outcome==="痊愈"?"checked":""}> 痊愈</label>
@@ -561,13 +537,14 @@ async function saveEdit() {
   const upd = {
     pName: document.getElementById("edit-pName").value.trim(),
     pScreenNo: document.getElementById("edit-pScreenNo").value.trim(),
-    pCaseNo: document.getElementById("edit-pCaseNo").value.trim(),
-    pCycle: document.getElementById("edit-pCycle").value,
+    pCycle: document.getElementById("edit-pCycle").value.trim(),
+    aeAssessDate: document.getElementById("edit-aeAssessDate").value,
     aeName: document.getElementById("edit-aeName").value.trim(),
     aeGrade: document.getElementById("edit-aeGrade").value,
     aeSAE: document.getElementById("edit-aeSAE").value,
     aeStart: document.getElementById("edit-aeStart").value,
     aeEnd: document.getElementById("edit-aeEnd").value,
+    aeHandle: document.getElementById("edit-aeHandle").value.trim(),
     outcome,
     aeNote: document.getElementById("edit-aeNote").value.trim(),
     updateTime: new Date().toISOString()
@@ -598,27 +575,28 @@ function closeEdit() {
 // ── 导出 Excel ──
 function exportExcel() {
   if (!allRecords.length) { showToast("暂无数据可导出", "error"); return; }
-  const headers = ["患者姓名","筛选号","病案号","治疗周期","评估日期","AE名称","CTCAE分级","是否SAE","开始日期","结束日期","治疗相关性（原因）","治疗相关性（程度）","处理措施","结局","备注","上报人","上报时间"];
+  const headers = ["患者姓名","筛选号","治疗周期","评估日期","AE名称","CTCAE分级","是否SAE","开始日期","结束日期","治疗相关性","处理措施","结局","备注","上报人","上报时间"];
   const rows = allRecords.map(r => [
-    r.pName||"", r.pScreenNo||"", r.pCaseNo||"", r.pCycle||"", r.aeAssessDate||"",
+    r.pName||"", r.pScreenNo||"", r.pCycle||"", r.aeAssessDate||"",
     r.aeName||"", r.aeGrade||"", r.aeSAE||"", r.aeStart||"", r.aeEnd||"",
-    r.relCause||"", r.relDegree||"", r.aeHandle||"", r.outcome||"持续中", r.aeNote||"",
+    r.aeRelation||"", r.aeHandle||"", r.outcome||"持续中", r.aeNote||"",
     r.reporter||"", r.reportTime ? new Date(r.reportTime).toLocaleString("zh-CN") : ""
   ]);
   const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-  ws["!cols"] = headers.map((_,i) => ({ wch: i===5?25:15 }));
+  ws["!cols"] = headers.map((_,i) => ({ wch: i===10?30:15 }));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "AE记录");
-  XLSX.writeFile(wb, `AE上报记录_${new Date().toISOString().slice(0,10)}.xlsx`);
+  XLSX.writeFile(wb, "AE上报记录_" + new Date().toISOString().slice(0,10) + ".xlsx");
   showToast("导出成功！");
 }
 
 // ── Toast ──
-function showToast(msg, type="success") {
+function showToast(msg, type) {
+  type = type || "success";
   const t = document.getElementById("toast");
   t.textContent = msg;
   t.className = "toast toast-" + type + " show";
-  setTimeout(() => t.classList.remove("show"), 2500);
+  setTimeout(function() { t.classList.remove("show"); }, 2500);
 }
 </script>
 </body>
