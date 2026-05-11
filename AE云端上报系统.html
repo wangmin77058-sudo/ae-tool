@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>AE不良事件上报系统</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB",sans-serif;background:#f6f7fb;color:#1f2937;max-width:430px;margin:0 auto;min-height:100vh;padding-bottom:100px}
+:root{--primary:#3b82f6;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--bg:#f6f7fb;--card:#ffffff;--border:#e5e7eb}
+.header{background:linear-gradient(135deg,#3b82f6 0%,#7c3aed 100%);color:#fff;padding:16px 20px;border-radius:0 0 20px 20px;position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(59,130,246,0.25)}
+.header h1{font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px}
+.header p{font-size:12px;opacity:0.85;margin-top:2px}
+.status-bar{display:flex;gap:6px;padding:10px 20px;background:#fff;border-bottom:1px solid #e5e7eb;font-size:12px;color:#6b7280;align-items:center}
+.status-dot{width:6px;height:6px;border-radius:50%;background:#10b981}
+.card{background:#fff;border-radius:16px;margin:12px 16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.section-title{font-size:15px;font-weight:700;color:#1f2937;margin-bottom:16px;display:flex;align-items:center;gap:6px}
+.label{font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;display:flex;align-items:center;gap:4px}
+.label .req{color:#ef4444;margin-left:2px}
+input,select,textarea{width:100%;padding:10px 12px;border:1.5px solid #d1d5db;border-radius:10px;font-size:14px;color:#1f2937;background:#f9fafb;transition:all 0.15s;outline:none;appearance:none;-webkit-appearance:none}
+input:focus,select:focus,textarea:focus{border-color:#3b82f6;background:#fff;box-shadow:0 0 0 3px rgba(59,130,246,0.12)}
+textarea{resize:vertical;min-height:60px}
+.form-group{margin-bottom:14px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 20px;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.15s;user-select:none}
+.btn-primary{background:linear-gradient(135deg,#3b82f6,#7c3aed);color:#fff;width:100%}
+.btn-primary:active{transform:scale(0.98);opacity:0.9}
+.btn-secondary{background:#f3f4f6;color:#374151;font-size:13px;padding:8px 14px}
+.btn-secondary:active{background:#e5e7eb}
+.btn-danger{background:#fef2f2;color:#ef4444;font-size:13px;padding:6px 10px;border-radius:8px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.stat-card{background:#f9fafb;border-radius:12px;padding:12px 8px;text-align:center}
+.stat-num{font-size:22px;font-weight:800;color:#1f2937}
+.stat-label{font-size:10px;color:#9ca3af;margin-top:2px}
+.record-item{border:1.5px solid #e5e7eb;border-radius:12px;margin-bottom:10px;overflow:hidden;transition:all 0.15s}
+.record-item.expanded{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,0.1)}
+.record-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;background:#f9fafb;user-select:none}
+.record-patient{font-size:14px;font-weight:700;color:#1f2937}
+.record-ae{font-size:12px;color:#6b7280;margin-top:1px}
+.record-meta{display:flex;align-items:center;gap:6px}
+.badge{padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-g1{background:#d1fae5;color:#065f46}.badge-g2{background:#fef3c7;color:#92400e}.badge-g3{background:#ffedd5;color:#9a3412}.badge-g4{background:#fee2e2;color:#991b1b}.badge-g5{background:#fecdd3;color:#9f1239}
+.badge-sae{background:#fecdd3;color:#be123c}
+.record-detail{padding:0 14px 14px;display:none}
+.record-detail.show{display:block}
+.detail-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f3f4f6;font-size:13px}
+.detail-label{color:#9ca3af}
+.detail-value{color:#374151;font-weight:500;text-align:right}
+.detail-actions{display:flex;gap:8px;margin-top:10px;justify-content:flex-end}
+.tab-bar{display:flex;background:#fff;border-radius:12px;padding:4px;margin:12px 16px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.tab-btn{flex:1;text-align:center;padding:8px;font-size:13px;font-weight:600;color:#9ca3af;border-radius:10px;cursor:pointer;transition:all 0.15s;border:none;background:none}
+.tab-btn:active{opacity:0.7}
+.tab-btn.active{background:#3b82f6;color:#fff;box-shadow:0 2px 8px rgba(59,130,246,0.3)}
+.toast{position:fixed;top:60px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;color:#fff;z-index:9999;opacity:0;transition:all 0.3s;pointer-events:none}
+.toast.show{opacity:1}.toast-success{background:#10b981}.toast-error{background:#ef4444}
+.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:200;align-items:flex-end;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal-panel{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:430px;max-height:85vh;overflow-y:auto;padding:20px;padding-bottom:30px}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+.close-btn{background:none;border:none;font-size:20px;cursor:pointer;color:#9ca3af;padding:4px}
+.empty-state{text-align:center;padding:40px 20px;color:#9ca3af}
+.empty-icon{font-size:48px;margin-bottom:8px}
+.loading{text-align:center;padding:20px;color:#9ca3af;font-size:13px}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🏥 AE上报系统</h1>
+  <p>不良事件云端上报 · 多人实时共享</p>
+</div>
+
+<div class="status-bar">
+  <div class="status-dot"></div>
+  <span id="statusText">正在连接云端……</span>
+  <span style="margin-left:auto" id="userInfo"></span>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('form')">📝 填报</button>
+  <button class="tab-btn" onclick="switchTab('list')">📋 记录</button>
+</div>
+
+<!-- 填报面板 -->
+<div id="tabForm">
+  <div class="card">
+    <div class="section-title">📝 患者信息</div>
+    <div class="form-group">
+      <div class="label">姓名/编号 <span class="req">*</span></div>
+      <input id="pName" type="text" placeholder="患者姓名或编号">
+    </div>
+    <div class="form-group">
+      <div class="label">病案号</div>
+      <input id="pCaseNo" type="text" placeholder="住院病案号">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">🔬 AE 详情</div>
+    <div class="form-group">
+      <div class="label">AE 名称 <span class="req">*</span></div>
+      <input id="aeName" type="text" placeholder="如：放射性肺炎">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <div class="label">AE 分级 <span class="req">*</span></div>
+        <select id="aeGrade"><option value="">请选择</option><option>G1</option><option>G2</option><option>G3</option><option>G4</option><option>G5</option></select>
+      </div>
+      <div class="form-group">
+        <div class="label">是否SAE</div>
+        <select id="aeSAE"><option value="否">否</option><option value="是">是</option></select>
+      </div>
+    </div>
+    <div class="form-group">
+      <div class="label">处理方式（可多选）</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
+        <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" value="对症治疗"> 对症治疗</label>
+        <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" value="暂停用药"> 暂停用药</label>
+        <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" value="减量"> 减量</label>
+        <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" value="终止治疗"> 终止治疗</label>
+        <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" value="住院"> 住院</label>
+        <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" value="观察"> 观察</label>
+      </div>
+    </div>
+    <div class="form-group">
+      <div class="label">与治疗相关性</div>
+      <select id="aeRelation"><option value="">请选择</option><option>肯定相关</option><option>可能相关</option><option>可能无关</option><option>肯定无关</option></select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <div class="label">发生日期</div>
+        <input id="aeStart" type="date">
+      </div>
+      <div class="form-group">
+        <div class="label">结束日期</div>
+        <input id="aeEnd" type="date">
+      </div>
+    </div>
+    <div class="form-group">
+      <div class="label">备注</div>
+      <textarea id="aeNote" placeholder="其他说明……"></textarea>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">👤 上报人</div>
+    <div class="form-group" style="margin-bottom:0">
+      <input id="reporter" type="text" placeholder="您的姓名">
+      <div style="font-size:11px;color:#9ca3af;margin-top:4px">姓名将随记录保存，方便追溯</div>
+    </div>
+  </div>
+
+  <div style="padding:0 16px;margin-top:8px">
+    <button class="btn btn-primary" onclick="submitAE()" style="padding:14px;font-size:15px;border-radius:12px">✅ 提交上报</button>
+  </div>
+</div>
+
+<!-- 记录面板 -->
+<div id="tabList" style="display:none">
+  <div class="card" style="padding:14px 16px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div class="section-title" style="margin-bottom:0">📋 上报记录</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary" onclick="exportExcel()">📊 导出</button>
+        <button class="btn btn-secondary" onclick="loadRecords()">🔄 刷新</button>
+      </div>
+    </div>
+  </div>
+  <div id="statsBar" class="stats" style="padding:0 16px">
+    <div class="stat-card"><div class="stat-num" id="statTotal">0</div><div class="stat-label">总上报</div></div>
+    <div class="stat-card"><div class="stat-num" id="statG3" style="color:#f59e0b">0</div><div class="stat-label">&ge;G3</div></div>
+    <div class="stat-card"><div class="stat-num" id="statSAE" style="color:#ef4444">0</div><div class="stat-label">SAE</div></div>
+    <div class="stat-card"><div class="stat-num" id="statOpen" style="color:#3b82f6">0</div><div class="stat-label">持续中</div></div>
+  </div>
+  <div id="recordList"></div>
+</div>
+
+<!-- 编辑弹窗 -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-panel">
+    <div class="modal-title">
+      ✏️ 编辑记录
+      <button class="close-btn" onclick="closeEdit()">✕</button>
+    </div>
+    <div id="editForm"></div>
+    <button class="btn btn-primary" onclick="saveEdit()" style="margin-top:16px;padding:12px;border-radius:10px">💾 保存修改</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/cloudbase@latest/dist/cloudbase.min.js"></script>
+<script>
+const ENV_ID = "cloud003";
+
+let app, db, userOpenId, currentEditingId = null, allRecords = [];
+
+// 初始化
+(async function init() {
+  try {
+    app = cloudbase.init({ env: ENV_ID });
+    db = app.database();
+    await app.auth().anonymousAuthProvider().signIn();
+    userOpenId = app.auth().currentUserInfo().uid;
+    document.getElementById("statusText").textContent = "云端已连接";
+    document.getElementById("userInfo").textContent = "匿名用户";
+    loadRecords();
+  } catch(e) {
+    console.error(e);
+    document.getElementById("statusText").textContent = "连接失败，请刷新重试";
+  }
+})();
+
+// Tab 切换
+function switchTab(tab) {
+  document.getElementById("tabForm").style.display = tab === "form" ? "block" : "none";
+  document.getElementById("tabList").style.display = tab === "list" ? "block" : "none";
+  document.querySelectorAll(".tab-btn").forEach((b,i) => b.classList.remove("active"));
+  document.querySelectorAll(".tab-btn")[tab === "form" ? 0 : 1].classList.add("active");
+  if (tab === "list") loadRecords();
+}
+
+// 获取多选值
+function getCheckboxes() {
+  return [...document.querySelectorAll('input[type="checkbox"]:checked')].map(c => c.value).join("、");
+}
+
+// 提交
+async function submitAE() {
+  const pName = document.getElementById("pName").value.trim();
+  const aeName = document.getElementById("aeName").value.trim();
+  const aeGrade = document.getElementById("aeGrade").value;
+  const reporter = document.getElementById("reporter").value.trim();
+  if (!pName || !aeName || !aeGrade) { showToast("请填写必填项", "error"); return; }
+  if (!reporter) { showToast("请填写上报人姓名", "error"); return; }
+
+  const record = {
+    pName, pCaseNo: document.getElementById("pCaseNo").value.trim(),
+    aeName, aeGrade, aeSAE: document.getElementById("aeSAE").value,
+    aeHandle: getCheckboxes(),
+    aeRelation: document.getElementById("aeRelation").value,
+    aeStart: document.getElementById("aeStart").value,
+    aeEnd: document.getElementById("aeEnd").value,
+    aeNote: document.getElementById("aeNote").value.trim(),
+    reporter,
+    createTime: new Date().toISOString(),
+    _openid: userOpenId
+  };
+
+  try {
+    await db.collection("ae_records").add(record);
+    showToast("提交成功！");
+    clearForm();
+    switchTab("list");
+  } catch(e) { showToast("提交失败：" + e.message, "error"); }
+}
+
+function clearForm() {
+  ["pName","pCaseNo","aeName","aeGrade","aeSAE","aeRelation","aeStart","aeEnd","aeNote","reporter"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el.type === "checkbox") el.checked = false; else el.value = id === "aeSAE" ? "否" : "";
+  });
+}
+
+// 加载记录
+async function loadRecords() {
+  const list = document.getElementById("recordList");
+  list.innerHTML = '<div class="loading">加载中……</div>';
+  try {
+    const res = await db.collection("ae_records").orderBy("createTime", "desc").get();
+    allRecords = res.data;
+    renderRecords(allRecords);
+    updateStats(allRecords);
+  } catch(e) { list.innerHTML = '<div class="empty-state">加载失败，请重试</div>'; }
+}
+
+function renderRecords(records) {
+  const list = document.getElementById("recordList");
+  if (!records.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div>暂无记录</div>'; return; }
+  list.innerHTML = records.map((r,i) => {
+    const esc = s => { const d=document.createElement("div"); d.textContent=s; return d.innerHTML; };
+    return `<div class="record-item ${i===0?"expanded":""}" id="rec-${r._id}">
+      <div class="record-header" onclick="toggleRecord('${r._id}')">
+        <div>
+          <div class="record-patient">${esc(r.pName)}</div>
+          <div class="record-ae">${esc(r.aeName)} · ${r.aeGrade}</div>
+        </div>
+        <div class="record-meta">
+          ${r.aeSAE==="是"?'<span class="badge badge-sae">SAE</span>':""}
+          <span class="badge badge-${r.aeGrade.toLowerCase()}">${r.aeGrade}</span>
+        </div>
+      </div>
+      <div class="record-detail ${i===0?"show":""}" id="detail-${r._id}">
+        ${r.pCaseNo?`<div class="detail-row"><span class="detail-label">病案号</span><span class="detail-value">${esc(r.pCaseNo)}</span></div>`:""}
+        <div class="detail-row"><span class="detail-label">AE名称</span><span class="detail-value">${esc(r.aeName)}</span></div>
+        <div class="detail-row"><span class="detail-label">分级/SAE</span><span class="detail-value">${r.aeGrade} / ${r.aeSAE}</span></div>
+        ${r.aeHandle?`<div class="detail-row"><span class="detail-label">处理</span><span class="detail-value">${esc(r.aeHandle)}</span></div>`:""}
+        ${r.aeRelation?`<div class="detail-row"><span class="detail-label">相关性</span><span class="detail-value">${esc(r.aeRelation)}</span></div>`:""}
+        <div class="detail-row"><span class="detail-label">发生/结束日期</span><span class="detail-value">${r.aeStart||"-"} / ${r.aeEnd||"持续中"}</span></div>
+        <div class="detail-row"><span class="detail-label">上报人</span><span class="detail-value">${esc(r.reporter)}</span></div>
+        ${r.aeNote?`<div class="detail-row"><span class="detail-label">备注</span><span class="detail-value">${esc(r.aeNote)}</span></div>`:""}
+        <div class="detail-row"><span class="detail-label">上报时间</span><span class="detail-value">${formatTime(r.createTime)}</span></div>
+        <div class="detail-actions">
+          ${r._openid===userOpenId?`<button class="btn btn-secondary" onclick="editRecord('${r._id}')">✏️ 编辑</button><button class="btn btn-danger" onclick="deleteRecord('${r._id}')">🗑️ 删除</button>`:'<span style="font-size:12px;color:#9ca3af">仅创建者可编辑</span>'}
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function toggleRecord(id) {
+  const el = document.getElementById(`detail-${id}`);
+  const item = el.parentElement;
+  item.classList.toggle("expanded");
+  el.classList.toggle("show");
+}
+
+function updateStats(records) {
+  document.getElementById("statTotal").textContent = records.length;
+  document.getElementById("statG3").textContent = records.filter(r => ["G3","G4","G5"].includes(r.aeGrade)).length;
+  document.getElementById("statSAE").textContent = records.filter(r => r.aeSAE==="是").length;
+  document.getElementById("statOpen").textContent = records.filter(r => !r.aeEnd).length;
+}
+
+// 编辑
+function editRecord(id) {
+  const r = allRecords.find(x => x._id === id);
+  if (!r) return;
+  currentEditingId = id;
+  const esc = s => { const d=document.createElement("div"); d.textContent=s||""; return d.innerHTML; };
+  document.getElementById("editForm").innerHTML = `
+    <div class="form-group"><div class="label">患者姓名/编号</div><input id="editPName" value="${esc(r.pName)}"></div>
+    <div class="form-group"><div class="label">病案号</div><input id="editPCaseNo" value="${esc(r.pCaseNo)}"></div>
+    <div class="form-group"><div class="label">AE名称</div><input id="editAeName" value="${esc(r.aeName)}"></div>
+    <div class="form-group"><div class="label">AE分级</div>
+      <select id="editAeGrade"><option ${r.aeGrade==="G1"?"selected":""}>G1</option><option ${r.aeGrade==="G2"?"selected":""}>G2</option><option ${r.aeGrade==="G3"?"selected":""}>G3</option><option ${r.aeGrade==="G4"?"selected":""}>G4</option><option ${r.aeGrade==="G5"?"selected":""}>G5</option></select>
+    </div>
+    <div class="form-group"><div class="label">是否SAE</div>
+      <select id="editAeSAE"><option value="否" ${r.aeSAE==="否"?"selected":""}>否</option><option value="是" ${r.aeSAE==="是"?"selected":""}>是</option></select>
+    </div>
+    <div class="form-group"><div class="label">与治疗相关性</div>
+      <select id="editAeRelation"><option value="">请选择</option><option ${r.aeRelation==="肯定相关"?"selected":""}>肯定相关</option><option ${r.aeRelation==="可能相关"?"selected":""}>可能相关</option><option ${r.aeRelation==="可能无关"?"selected":""}>可能无关</option><option ${r.aeRelation==="肯定无关"?"selected":""}>肯定无关</option></select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><div class="label">发生日期</div><input id="editAeStart" type="date" value="${r.aeStart||""}"></div>
+      <div class="form-group"><div class="label">结束日期</div><input id="editAeEnd" type="date" value="${r.aeEnd||""}"></div>
+    </div>
+    <div class="form-group"><div class="label">备注</div><textarea id="editAeNote">${esc(r.aeNote)}</textarea></div>
+  `;
+  document.getElementById("editModal").classList.add("show");
+}
+
+async function saveEdit() {
+  const upd = {
+    pName: document.getElementById("editPName").value.trim(),
+    pCaseNo: document.getElementById("editPCaseNo").value.trim(),
+    aeName: document.getElementById("editAeName").value.trim(),
+    aeGrade: document.getElementById("editAeGrade").value,
+    aeSAE: document.getElementById("editAeSAE").value,
+    aeRelation: document.getElementById("editAeRelation").value,
+    aeStart: document.getElementById("editAeStart").value,
+    aeEnd: document.getElementById("editAeEnd").value,
+    aeNote: document.getElementById("editAeNote").value.trim(),
+    updateTime: new Date().toISOString()
+  };
+  try {
+    await db.collection("ae_records").doc(currentEditingId).update(upd);
+    showToast("修改成功！");
+    closeEdit();
+    loadRecords();
+  } catch(e) { showToast("修改失败：" + e.message, "error"); }
+}
+
+function closeEdit() { document.getElementById("editModal").classList.remove("show"); currentEditingId = null; }
+
+// 删除
+async function deleteRecord(id) {
+  if (!confirm("确定删除这条记录？")) return;
+  try {
+    await db.collection("ae_records").doc(id).remove();
+    showToast("已删除");
+    loadRecords();
+  } catch(e) { showToast("删除失败：" + e.message, "error"); }
+}
+
+// 导出 Excel (CSV)
+function exportExcel() {
+  if (!allRecords.length) { showToast("没有数据可导出", "error"); return; }
+  const gradeOrder = {"G1":1,"G2":2,"G3":3,"G4":4,"G5":5};
+  const sorted = [...allRecords].sort((a,b) => (gradeOrder[a.aeGrade]||0)-(gradeOrder[b.aeGrade]||0));
+  let csv = "\uFEFF患者姓名/编号,病案号,AE名称,分级,是否SAE,处理方式,与治疗相关性,发生日期,结束日期,上报人,备注,上报时间\n";
+  sorted.forEach(r => {
+    const row = [r.pName,r.pCaseNo,r.aeName,r.aeGrade,r.aeSAE,r.aeHandle,r.aeRelation,r.aeStart,r.aeEnd,r.reporter,r.aeNote,formatTime(r.createTime)];
+    csv += `"${row.map(v => (v||"-").replace(/"/g,'""')).join('","')}"\n`;
+  });
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `AE上报记录_${new Date().toLocaleDateString("zh-CN").replace(/\//g,"-")}.csv`;
+  a.click();
+  showToast("导出成功！");
+}
+
+// 工具函数
+function formatTime(iso){if(!iso) return "-"; const d=new Date(iso); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`}
+function showToast(msg, type="success"){const t=document.getElementById("toast");t.textContent=msg;t.className=`toast show toast-${type}`;setTimeout(()=>t.classList.remove("show"),2500)}
+</script>
+</body>
+</html>
